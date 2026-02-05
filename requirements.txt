@@ -1,0 +1,37 @@
+# EAM Cognitive OS - Backend Dependencies
+# Python 3.11-3.13 (CrewAI compatibility)
+
+# Web Framework
+fastapi>=0.115.0
+uvicorn[standard]>=0.34.0
+python-multipart>=0.0.20
+
+# Pydantic v2
+pydantic>=2.10.0
+pydantic-settings>=2.7.0
+
+# LangChain/LangGraph
+langchain>=0.3.15
+langchain-openai>=0.3.0
+langgraph>=0.2.60
+langgraph-checkpoint>=2.0.0
+
+# CrewAI for collaborative agents
+crewai>=0.100.0
+
+# Supabase
+supabase>=2.10.0
+vecs>=0.4.0
+
+# Async HTTP
+httpx>=0.28.0
+websockets>=14.0
+
+# OpenAI (for Vercel AI Gateway - OpenAI compatible)
+openai>=1.60.0
+tiktoken>=0.8.0
+
+# Utilities
+python-dotenv>=1.0.0
+tenacity>=9.0.0
+structlog>=24.0.0

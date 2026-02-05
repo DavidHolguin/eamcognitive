@@ -1,0 +1,99 @@
+# ============================================================================
+# EAM Cognitive OS - Docker Compose
+# Arquitectura Híbrida: Backend Cognitivo Containerizado
+# ============================================================================
+
+version: "3.9"
+
+services:
+  # ─────────────────────────────────────────────────────────────────────────
+  # Capa de Agentes (Backend Cognitivo)
+  # Contenedor persistente para ejecución de larga duración
+  # ─────────────────────────────────────────────────────────────────────────
+  cognitive-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: eam-cognitive-backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      # Vercel AI Gateway
+      - VERCEL_AI_GATEWAY_URL=${VERCEL_AI_GATEWAY_URL}
+      - VERCEL_AI_GATEWAY_TOKEN=${VERCEL_AI_GATEWAY_TOKEN}
+      # Supabase
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      # App Settings
+      - APP_NAME=${APP_NAME:-EAM Cognitive OS}
+      - DEBUG=${DEBUG:-false}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8000/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: 2G
+        reservations:
+          cpus: "0.5"
+          memory: 512M
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.cognitive.rule=Host(`api.cognitive.eam.edu.co`)"
+      - "traefik.http.services.cognitive.loadbalancer.server.port=8000"
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Desarrollo Local con Hot-Reload
+  # ─────────────────────────────────────────────────────────────────────────
+  cognitive-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    container_name: eam-cognitive-dev
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app:cached
+      - /app/__pycache__
+    environment:
+      - VERCEL_AI_GATEWAY_URL=${VERCEL_AI_GATEWAY_URL}
+      - VERCEL_AI_GATEWAY_TOKEN=${VERCEL_AI_GATEWAY_TOKEN}
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - DEBUG=true
+      - LOG_LEVEL=DEBUG
+    profiles:
+      - dev
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Redis para Caching y Rate Limiting (Opcional)
+  # ─────────────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: eam-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    profiles:
+      - full
+
+volumes:
+  redis_data:
+
+
+networks:
+  default:
+    name: eam-cognitive-network

@@ -1,0 +1,158 @@
+# ============================================================================
+# EAM Cognitive OS - Python Project Configuration
+# Compatible con uv, pip, y poetry
+# ============================================================================
+
+[project]
+name = "eam-cognitive-os"
+version = "2.0.1"
+description = "Sistema Operativo Cognitivo Multi-Agente para la Institución Universitaria EAM"
+readme = "README.md"
+license = { text = "Proprietary" }
+authors = [
+    { name = "EAM Cognitive Team", email = "tic@eam.edu.co" }
+]
+keywords = ["multi-agent", "langgraph", "crewai", "cognitive-os", "ai-agents"]
+
+# ╔════════════════════════════════════════════════════════════════════════╗
+# ║ CRÍTICO: Python 3.11 es la versión estable para CrewAI                ║
+# ║ No usar 3.12+ hasta que las dependencias sean compatibles             ║
+# ╚════════════════════════════════════════════════════════════════════════╝
+requires-python = ">=3.10,<3.12"
+
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Framework :: FastAPI",
+    "Intended Audience :: Education",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+dependencies = [
+    # Web Framework
+    "fastapi>=0.109.0",
+    "uvicorn[standard]>=0.27.0",
+    "python-multipart>=0.0.9",
+    
+    # Validation & Configuration
+    "pydantic>=2.5.0",
+    "pydantic-settings>=2.1.0",
+    
+    # LangChain Ecosystem
+    "langchain>=0.1.0",
+    "langchain-openai>=0.0.5",
+    "langchain-community>=0.0.20",
+    
+    # LangGraph - Orchestration
+    "langgraph>=0.0.40",
+    
+    # CrewAI - Multi-Agent Framework
+    "crewai>=0.22.0",
+    
+    # Database
+    "supabase>=2.3.0",
+    
+    # Async & Utils
+    "httpx>=0.26.0",
+    "structlog>=24.1.0",
+    "python-dotenv>=1.0.0",
+    
+    # OpenAI SDK (for Vercel AI Gateway compatibility)
+    "openai>=1.10.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
+    "httpx>=0.26.0",
+    "ruff>=0.2.0",
+    "mypy>=1.8.0",
+    "pre-commit>=3.6.0",
+]
+
+embeddings = [
+    "sentence-transformers>=2.3.0",
+    "tiktoken>=0.5.0",
+]
+
+[project.scripts]
+cognitive = "app.main:app"
+
+[project.urls]
+Homepage = "https://eam.edu.co"
+Repository = "https://github.com/eam-cognitive/cognitive-os"
+Documentation = "https://docs.cognitive.eam.edu.co"
+
+# ============================================================================
+# Build System
+# ============================================================================
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
+
+# ============================================================================
+# uv Configuration (Modern Package Management)
+# Python version is controlled by .python-version file
+# ============================================================================
+[tool.uv]
+# uv uses .python-version file for Python version management
+
+
+# ============================================================================
+# Ruff (Fast Linter & Formatter)
+# ============================================================================
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # Pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade
+]
+ignore = [
+    "E501",  # line too long (handled by formatter)
+    "B008",  # do not perform function calls in argument defaults
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+
+# ============================================================================
+# MyPy (Type Checking)
+# ============================================================================
+[tool.mypy]
+python_version = "3.11"
+strict = true
+ignore_missing_imports = true
+plugins = ["pydantic.mypy"]
+
+[tool.pydantic-mypy]
+init_forbid_extra = true
+init_typed = true
+warn_required_dynamic_aliases = true
+
+# ============================================================================
+# Pytest
+# ============================================================================
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+python_files = "test_*.py"
+python_functions = "test_*"
+filterwarnings = [
+    "ignore::DeprecationWarning",
+]
