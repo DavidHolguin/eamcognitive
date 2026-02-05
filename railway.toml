@@ -6,7 +6,8 @@ buildTarget = "production"
 
 [deploy]
 # Use the $PORT environment variable
-startCommand = "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"
+# startCommand removed to use Dockerfile CMD
+
 healthcheckPath = "/health"
 healthcheckTimeout = 30
 restartPolicyType = "on_failure"
