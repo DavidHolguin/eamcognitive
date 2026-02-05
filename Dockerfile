@@ -43,39 +43,6 @@ ENV PATH="/opt/venv/bin:$PATH"
 RUN uv pip install -r requirements.txt
 
 # ============================================================================
-# Production Stage - Imagen final mínima
-# ============================================================================
-FROM base AS production
-
-# Dependencias de runtime mínimas
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl \
-    && rm -rf /var/lib/apt/lists/* \
-    && apt-get clean
-
-# Copiar virtualenv del builder
-COPY --from=builder /opt/venv /opt/venv
-ENV PATH="/opt/venv/bin:$PATH"
-
-# Copiar código de la aplicación
-COPY app/ ./app/
-
-# Usuario no-root por seguridad
-RUN useradd --create-home --shell /bin/bash cognitiveuser
-RUN chown -R cognitiveuser:cognitiveuser /app
-USER cognitiveuser
-
-# Puerto por defecto para FastAPI
-EXPOSE 8000
-
-# Health check para orquestadores (Cloud Run, Railway, K8s)
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8000/health || exit 1
-
-# Comando de inicio - Uvicorn con workers para producción
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2"]
-
-# ============================================================================
 # Development Stage - Para iteración rápida local
 # ============================================================================
 FROM base AS development
@@ -106,4 +73,38 @@ USER devuser
 EXPOSE 8000
 
 # Hot-reload para desarrollo
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+CMD uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --reload
+
+
+# ============================================================================
+# Production Stage - Imagen final mínima (Last stage = Default)
+# ============================================================================
+FROM base AS production
+
+# Dependencias de runtime mínimas
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
+
+# Copiar virtualenv del builder
+COPY --from=builder /opt/venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Copiar código de la aplicación
+COPY app/ ./app/
+
+# Usuario no-root por seguridad
+RUN useradd --create-home --shell /bin/bash cognitiveuser
+RUN chown -R cognitiveuser:cognitiveuser /app
+USER cognitiveuser
+
+# Puerto por defecto para FastAPI
+EXPOSE 8000
+
+# Health check dinámico
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:${PORT:-8000}/health || exit 1
+
+# Comando de inicio - Shell form para expandir $PORT
+CMD uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --workers 2
