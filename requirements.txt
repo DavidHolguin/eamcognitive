@@ -22,6 +22,8 @@ crewai>=0.100.0
 # Supabase
 supabase>=2.10.0
 vecs>=0.4.0
+pyjwt>=2.8.0
+cryptography>=42.0.0
 
 # Async HTTP
 httpx>=0.28.0

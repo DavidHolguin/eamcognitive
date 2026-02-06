@@ -70,6 +70,10 @@ class Settings(BaseSettings):
         ...,
         description="Supabase service role key (for admin operations)"
     )
+    supabase_jwt_secret: Optional[SecretStr] = Field(
+        default=None,
+        description="Supabase JWT secret for local validation"
+    )
     
     # ─────────────────────────────────────────────────────────────────────────
     # Application Settings
