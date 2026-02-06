@@ -367,7 +367,7 @@ async def create_document(
         "content": document.content,
         "version": document.version,
         "status": "uploading",
-        "uploaded_by": user.get("id"),
+        "uploaded_by": str(user.id),
         "processing_log": [{"timestamp": datetime.utcnow().isoformat(), "message": "Documento creado"}]
     }).execute()
     

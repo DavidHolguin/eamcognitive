@@ -92,7 +92,7 @@ class Settings(BaseSettings):
     
     # CORS origins for frontend
     cors_origins: list[str] = Field(
-        default=["http://localhost:3000", "http://localhost:5173"],
+        default=["https://team.eamedu.co", "http://localhost:3000", "http://localhost:5173"],
         description="Allowed CORS origins"
     )
     

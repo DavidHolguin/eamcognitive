@@ -147,6 +147,7 @@ async def get_current_user(
                         )
                 except Exception as e:
                     logger.error("Remote authentication error", error=str(e))
+                    user_id = None
         
         if not user_id:
             logger.warning("Authentication failed: User could not be verified locally or remotely")
