@@ -61,13 +61,27 @@ class BaseAgentNode(ABC):
         """Get or create the LLM instance."""
         if self._llm is None:
             model_config = self.config.model_config_data or AgentModelConfig()
-            self._llm = ChatOpenAI(
-                base_url=self.settings.vercel_ai_gateway_url,
-                api_key=self.settings.vercel_ai_gateway_token.get_secret_value(),
-                model=model_config.model,
-                temperature=model_config.temperature,
-                max_tokens=model_config.max_tokens,
-            )
+            
+            # Determine connection params based on provider
+            kwargs = {
+                "model": model_config.model,
+                "temperature": model_config.temperature,
+                "max_tokens": model_config.max_tokens,
+            }
+            
+            if self.settings.llm_provider.upper() == "VERCEL":
+                if not self.settings.vercel_ai_gateway_token:
+                    logger.error("Vercel token missing for agent")
+                else:
+                    kwargs["base_url"] = self.settings.vercel_ai_gateway_url
+                    kwargs["api_key"] = self.settings.vercel_ai_gateway_token.get_secret_value()
+            else:
+                # Direct OpenAI (or compatible)
+                if self.settings.openai_api_key:
+                    kwargs["api_key"] = self.settings.openai_api_key.get_secret_value()
+                # If no key provided here, ChatOpenAI will look for OPENAI_API_KEY env var
+                
+            self._llm = ChatOpenAI(**kwargs)
         return self._llm
     
     @abstractmethod

@@ -23,20 +23,32 @@ class Settings(BaseSettings):
     )
     
     # ─────────────────────────────────────────────────────────────────────────
-    # Vercel AI Gateway (OpenAI-compatible)
+    # LLM Provider Configuration
     # ─────────────────────────────────────────────────────────────────────────
-    vercel_ai_gateway_url: str = Field(
-        default="https://ai-gateway.vercel.sh/v1",
-        description="Vercel AI Gateway base URL (OpenAI-compatible)"
-    )
-    vercel_ai_gateway_token: SecretStr = Field(
-        ...,
-        description="Vercel AI Gateway API token"
+    llm_provider: str = Field(
+        default="OPENAI",
+        description="LLM Provider: OPENAI, VERCEL"
     )
     
-    # Default model for agents (can be overridden per-agent in DB)
+    # OpenAI Direct Configuration
+    openai_api_key: Optional[SecretStr] = Field(
+        default=None,
+        description="OpenAI API Key (required if llm_provider is OPENAI)"
+    )
+    
+    # Vercel AI Gateway Configuration
+    vercel_ai_gateway_url: str = Field(
+        default="https://ai-gateway.vercel.sh/v1",
+        description="Vercel AI Gateway base URL"
+    )
+    vercel_ai_gateway_token: Optional[SecretStr] = Field(
+        default=None,
+        description="Vercel AI Gateway API token (required if llm_provider is VERCEL)"
+    )
+    
+    # Default model for agents
     default_model: str = Field(
-        default="openai/gpt-4o-mini",
+        default="gpt-4o-mini",
         description="Default LLM model ID"
     )
     default_temperature: float = Field(
@@ -47,7 +59,7 @@ class Settings(BaseSettings):
     
     # Embedding model
     embedding_model: str = Field(
-        default="openai/text-embedding-3-small",
+        default="text-embedding-3-small",
         description="Model for vector embeddings"
     )
     embedding_dimensions: int = Field(

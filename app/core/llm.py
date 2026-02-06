@@ -21,18 +21,29 @@ def get_llm_client() -> AsyncOpenAI:
     if _llm_client is None:
         settings = get_settings()
         
-        # Use Vercel AI Gateway if configured, otherwise direct OpenAI
-        if settings.vercel_ai_gateway_url:
+        if settings.llm_provider.upper() == "VERCEL":
+            if not settings.vercel_ai_gateway_token:
+                raise ValueError("Vercel AI Gateway token is required when provider is VERCEL")
+                
             _llm_client = AsyncOpenAI(
                 api_key=settings.vercel_ai_gateway_token.get_secret_value(),
                 base_url=settings.vercel_ai_gateway_url
             )
             logger.info("LLM client initialized with Vercel AI Gateway")
         else:
-            # Fallback to direct OpenAI (would need OPENAI_API_KEY in env)
-            import os
+            # Default to direct OpenAI
+            api_key = None
+            if settings.openai_api_key:
+                api_key = settings.openai_api_key.get_secret_value()
+            else:
+                import os
+                api_key = os.getenv("OPENAI_API_KEY")
+            
+            if not api_key:
+                logger.warning("No OpenAI API key found. LLM calls may fail.")
+            
             _llm_client = AsyncOpenAI(
-                api_key=os.getenv("OPENAI_API_KEY", "")
+                api_key=api_key or "dummy_key_for_build"
             )
             logger.info("LLM client initialized with direct OpenAI")
     
@@ -67,7 +78,10 @@ async def chat_completion(
     max_tokens: Optional[int] = None,
     json_mode: bool = False
 ) -> str:
-    """Simple chat completion helper."""
+    """
+    Simple chat completion helper.
+    Ensures robust handling of json_mode across different model providers.
+    """
     client = get_llm_client()
     
     kwargs = {
@@ -80,7 +94,24 @@ async def chat_completion(
         kwargs["max_tokens"] = max_tokens
     
     if json_mode:
-        kwargs["response_format"] = {"type": "json_object"}
+        # Some models or gateways fail with response_format
+        # We'll try with it first, but fallback if it errors
+        try:
+            kwargs["response_format"] = {"type": "json_object"}
+            response = await client.chat.completions.create(**kwargs)
+            return response.choices[0].message.content
+        except Exception as e:
+            logger.warning("LLM call with response_format failed, falling back to prompt-only JSON", error=str(e))
+            # Remove response_format and try again
+            if "response_format" in kwargs:
+                del kwargs["response_format"]
+            
+            # Ensure the last message asks for JSON
+            if messages and messages[-1]["role"] != "system":
+                messages[-1]["content"] += "\n\nResponde únicamente en formato JSON válido."
+            
+            response = await client.chat.completions.create(**kwargs)
+            return response.choices[0].message.content
     
     response = await client.chat.completions.create(**kwargs)
     return response.choices[0].message.content

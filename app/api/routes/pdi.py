@@ -140,18 +140,30 @@ async def extract_entities_and_relations(content: str) -> dict[str, Any]:
     """Extract entities and relations from PDI content using LLM."""
     llm = get_llm_client()
     
-    response = await llm.chat.completions.create(
-        model="gpt-4o",
-        messages=[
+    kwargs = {
+        "model": "gpt-4o",
+        "messages": [
             {"role": "system", "content": EXTRACTION_PROMPT},
             {"role": "user", "content": content[:12000]}  # Limit content size
         ],
-        temperature=0.2,
-        response_format={"type": "json_object"}
-    )
+        "temperature": 0.2,
+        "response_format": {"type": "json_object"}
+    }
+    
+    try:
+        response = await llm.chat.completions.create(**kwargs)
+        content = response.choices[0].message.content
+    except Exception as e:
+        logger.warning("PDI extraction failed with response_format, trying without it", error=str(e))
+        # Fallback: remove response_format and ensure JSON request in prompt
+        del kwargs["response_format"]
+        kwargs["messages"][-1]["content"] += "\n\nResponde únicamente en formato JSON válido."
+        
+        response = await llm.chat.completions.create(**kwargs)
+        content = response.choices[0].message.content
     
     import json
-    return json.loads(response.choices[0].message.content)
+    return json.loads(content)
 
 
 ALIGNMENT_PROMPT = """Eres "El Estratega", un agente experto en alineación estratégica institucional.
@@ -194,18 +206,29 @@ ENTIDADES PDI DISPONIBLES:
 {[f"- {e['name']} ({e['entity_type']}): {e['description']}" for e in pdi_entities[:20]]}
 """
     
-    response = await llm.chat.completions.create(
-        model="gpt-4o",
-        messages=[
+    kwargs = {
+        "model": "gpt-4o",
+        "messages": [
             {"role": "system", "content": ALIGNMENT_PROMPT},
             {"role": "user", "content": context}
         ],
-        temperature=0.3,
-        response_format={"type": "json_object"}
-    )
+        "temperature": 0.3,
+        "response_format": {"type": "json_object"}
+    }
+    
+    try:
+        response = await llm.chat.completions.create(**kwargs)
+        content = response.choices[0].message.content
+    except Exception as e:
+        logger.warning("Task alignment failed with response_format, trying without it", error=str(e))
+        del kwargs["response_format"]
+        kwargs["messages"][-1]["content"] += "\n\nResponde únicamente en formato JSON válido."
+        
+        response = await llm.chat.completions.create(**kwargs)
+        content = response.choices[0].message.content
     
     import json
-    return json.loads(response.choices[0].message.content)
+    return json.loads(content)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -226,7 +249,7 @@ async def process_pdi_document(document_id: str):
         # Update status: processing
         client.table("pdi_documents").update({
             "status": "processing",
-            "processing_log": doc.data.get("processing_log", []) + [
+            "processing_log": (doc.data.get("processing_log") or []) + [
                 {"timestamp": datetime.utcnow().isoformat(), "message": "Iniciando procesamiento"}
             ]
         }).eq("id", document_id).execute()
@@ -311,7 +334,7 @@ async def process_pdi_document(document_id: str):
             "status": "ready",
             "entity_count": len(entities),
             "relation_count": relation_count,
-            "processing_log": doc.data.get("processing_log", []) + [
+            "processing_log": (doc.data.get("processing_log") or []) + [
                 {"timestamp": datetime.utcnow().isoformat(), "message": f"Completado: {len(entities)} entidades, {relation_count} relaciones"}
             ]
         }).eq("id", document_id).execute()
@@ -385,7 +408,9 @@ async def create_document(
         "id": document_id,
         "title": document.title,
         "status": "uploading",
-        "message": "Documento creado. El procesamiento iniciará en segundo plano."
+        "message": "Documento creado. El procesamiento iniciará en segundo plano.",
+        "entities": [],
+        "relations": []
     }
 
 
