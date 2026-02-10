@@ -609,11 +609,22 @@ async def align_task(
     alignment_score = alignment.get("alignment_score", 0.0)
     
     # Find best matching KR if aligned
-    key_result_id = None
-    if alignment.get("suggested_kr_id"):
-        key_result_id = alignment["suggested_kr_id"]
-    
-    pdi_entity_id = alignment.get("suggested_pdi_entity_id")
+    # Helper to sanitize UUIDs
+    def sanitize_uuid(value: Any) -> Optional[str]:
+        if not value:
+            return None
+        if isinstance(value, str) and value.lower() in ["null", "none", ""]:
+            return None
+        try:
+            # Validate if it's a real UUID
+            UUID(str(value))
+            return str(value)
+        except ValueError:
+            return None
+
+    # Find best matching KR if aligned
+    key_result_id = sanitize_uuid(alignment.get("suggested_kr_id"))
+    pdi_entity_id = sanitize_uuid(alignment.get("suggested_pdi_entity_id"))
     
     # Create task_kr_alignment record
     if alignment_status in ["aligned", "needs_review"]:
