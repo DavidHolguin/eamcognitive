@@ -636,14 +636,14 @@ async def align_task(
                 key_result_id = krs[0]["id"]
         
         if key_result_id:
-            client.table("task_kr_alignments").insert({
+            client.table("task_kr_alignments").upsert({
                 "task_id": str(request.task_id),
                 "key_result_id": key_result_id,
                 "alignment_score": alignment_score,
                 "ai_justification": alignment.get("justification", ""),
                 "status": alignment_status,
                 "pdi_entity_id": pdi_entity_id
-            }).execute()
+            }, on_conflict="task_id,key_result_id").execute()
     
     # Update task alignment status
     client.table("tasks").update({
