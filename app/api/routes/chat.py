@@ -99,6 +99,9 @@ async def send_message(
             conv_result = client.table("conversations").insert(conv_data).execute()
             conversation_id = UUID(conv_result.data[0]["id"])
         
+        # Ensure conversation_id is a string for LangGraph compatibility
+        conv_id_str = str(conversation_id)
+        
         # Save user message
         msg_data = {
             "conversation_id": str(conversation_id),
@@ -128,8 +131,8 @@ async def send_message(
             # Build initial cognitive state
             initial_state = CognitiveState(
                 run_id=run_id,
-                conversation_id=conversation_id,
-                triggered_by=UUID(str(user.id)),
+                conversation_id=conv_id_str,
+                triggered_by=str(user.id),
                 user_message=payload.message,
                 security_context=security_context
             )
@@ -209,10 +212,13 @@ async def send_message_stream(
             yield f"event: start\ndata: {json.dumps({'status': 'processing'})}\n\n"
             
             # Build and run graph (simplified for streaming)
+            conv_id = payload.conversation_id or uuid4()
+            run_id = uuid4()
+            
             initial_state = CognitiveState(
-                run_id=uuid4(),
-                conversation_id=payload.conversation_id or uuid4(),
-                triggered_by=UUID(str(user.id)),
+                run_id=str(run_id),
+                conversation_id=str(conv_id),
+                triggered_by=str(user.id),
                 user_message=payload.message,
                 security_context=security_context
             )

@@ -73,7 +73,7 @@ class SecurityContext(BaseModel):
     Security context for the current request.
     Used for Zero Trust validation and audit logging.
     """
-    user_id: UUID
+    user_id: str  # Stored as str for LangGraph serialization compat
     access_level: str = "externo"  # 'sede_principal', 'vpn_institucional', 'externo'
     device_verified: bool = False
     session_id: str
@@ -111,11 +111,11 @@ class CognitiveState(BaseModel):
     """
     
     # ─────────────────────────────────────────────────────────────────────────
-    # Execution Identifiers
+    # Execution Identifiers (stored as str for LangGraph serialization compat)
     # ─────────────────────────────────────────────────────────────────────────
-    run_id: UUID = Field(default_factory=uuid4)
-    conversation_id: UUID
-    triggered_by: UUID  # User ID who initiated this run
+    run_id: str = Field(default_factory=lambda: str(uuid4()))
+    conversation_id: str
+    triggered_by: str  # User ID who initiated this run
     
     # ─────────────────────────────────────────────────────────────────────────
     # Input/Output

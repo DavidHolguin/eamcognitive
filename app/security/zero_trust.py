@@ -201,7 +201,7 @@ async def build_security_context(
     session_id = request.headers.get("X-Session-ID") or request.cookies.get("session_id") or str(UUID(int=0))
     
     return SecurityContext(
-        user_id=UUID(user.id) if user else UUID(int=0),
+        user_id=str(user.id) if user else str(UUID(int=0)),
         access_level=validator.determine_access_level(request).value,
         device_verified=validator.verify_device(request),
         session_id=session_id,
