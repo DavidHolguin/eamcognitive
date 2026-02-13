@@ -248,8 +248,11 @@ async def send_message_stream(
             yield f"event: end\ndata: {json.dumps({'status': 'complete'})}\n\n"
             
         except Exception as e:
-            logger.error("Stream error", error=str(e))
-            yield f"event: error\ndata: {json.dumps({'error': str(e)})}\n\n"
+            import traceback
+            error_msg = str(e) or f"{type(e).__name__}: {repr(e)}"
+            tb = traceback.format_exc()
+            logger.error("Stream error", error=error_msg, traceback=tb)
+            yield f"event: error\ndata: {json.dumps({'error': error_msg, 'type': type(e).__name__, 'traceback': tb[:500]})}\n\n"
     
     return StreamingResponse(
         event_generator(),
