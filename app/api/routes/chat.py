@@ -237,8 +237,8 @@ async def send_message_stream(
                 elif event_type == "on_chain_end":
                     output = event.get("data", {}).get("output", {})
                     if isinstance(output, dict) and output.get("genui_payloads"):
-                        for payload in output["genui_payloads"]:
-                            yield f"event: genui\ndata: {json.dumps(payload.model_dump() if hasattr(payload, 'model_dump') else payload)}\n\n"
+                        for genui_item in output["genui_payloads"]:
+                            yield f"event: genui\ndata: {json.dumps(genui_item.model_dump() if hasattr(genui_item, 'model_dump') else genui_item)}\n\n"
             
             # Final response
             final_state = await graph.ainvoke(initial_state, config)
