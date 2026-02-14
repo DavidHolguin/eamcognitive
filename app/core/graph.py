@@ -122,7 +122,7 @@ async def end_node(state: CognitiveState) -> dict[str, Any]:
 # Graph Builder
 # ─────────────────────────────────────────────────────────────────────────────
 
-def build_cognitive_graph() -> CompiledStateGraph:
+def build_cognitive_graph(use_checkpointer: bool = True) -> CompiledStateGraph:
     """
     Build and compile the main cognitive graph.
     
@@ -182,25 +182,40 @@ def build_cognitive_graph() -> CompiledStateGraph:
     # End node terminates
     builder.add_edge("end", END)
     
-    # Compile with checkpointer
-    checkpointer = SupabaseCheckpointer()
-    graph = builder.compile(checkpointer=checkpointer)
+    # Compile with or without checkpointer
+    if use_checkpointer:
+        checkpointer = SupabaseCheckpointer()
+        graph = builder.compile(checkpointer=checkpointer)
+    else:
+        graph = builder.compile()
     
-    logger.info("Cognitive graph compiled successfully")
+    logger.info("Cognitive graph compiled successfully", checkpointer=use_checkpointer)
     
     return graph
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Global Graph Instance
+# Global Graph Instances
 # ─────────────────────────────────────────────────────────────────────────────
 
 _cognitive_graph: CompiledStateGraph | None = None
+_cognitive_graph_async: CompiledStateGraph | None = None
 
 
 def get_cognitive_graph() -> CompiledStateGraph:
-    """Get or create the global cognitive graph instance."""
+    """Get or create the global cognitive graph instance (with sync checkpointer)."""
     global _cognitive_graph
     if _cognitive_graph is None:
-        _cognitive_graph = build_cognitive_graph()
+        _cognitive_graph = build_cognitive_graph(use_checkpointer=True)
     return _cognitive_graph
+
+
+def get_cognitive_graph_async() -> CompiledStateGraph:
+    """Get or create the global cognitive graph instance WITHOUT checkpointer.
+    Use this for async operations (ainvoke, astream, astream_events)
+    since the SupabaseCheckpointer only has sync methods."""
+    global _cognitive_graph_async
+    if _cognitive_graph_async is None:
+        _cognitive_graph_async = build_cognitive_graph(use_checkpointer=False)
+    return _cognitive_graph_async
+

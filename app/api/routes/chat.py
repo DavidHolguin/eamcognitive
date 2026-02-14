@@ -14,7 +14,7 @@ import json
 
 from app.config import get_settings
 from app.core.state import CognitiveState, SecurityContext
-from app.core.graph import get_cognitive_graph
+from app.core.graph import get_cognitive_graph, get_cognitive_graph_async
 from app.core.checkpointer import persist_brain_log, update_run_status
 from app.db.supabase import get_supabase_admin_client
 from app.db.models import MessageCreate, SenderType, RunStatus
@@ -223,7 +223,7 @@ async def send_message_stream(
                 security_context=security_context
             )
             
-            graph = get_cognitive_graph()
+            graph = get_cognitive_graph_async()
             config = {"configurable": {"thread_id": str(initial_state.run_id)}}
             
             # Use ainvoke instead of astream_events to avoid
