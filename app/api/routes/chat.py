@@ -226,23 +226,24 @@ async def send_message_stream(
             graph = get_cognitive_graph()
             config = {"configurable": {"thread_id": str(initial_state.run_id)}}
             
-            # Stream graph events
-            async for event in graph.astream_events(initial_state, config, version="v2"):
-                event_type = event.get("event", "")
-                
-                if event_type == "on_chain_start":
-                    node_name = event.get("name", "")
-                    yield f"event: thinking\ndata: {json.dumps({'node': node_name})}\n\n"
-                
-                elif event_type == "on_chain_end":
-                    output = event.get("data", {}).get("output", {})
-                    if isinstance(output, dict) and output.get("genui_payloads"):
-                        for genui_item in output["genui_payloads"]:
-                            yield f"event: genui\ndata: {json.dumps(genui_item.model_dump() if hasattr(genui_item, 'model_dump') else genui_item)}\n\n"
+            # Use ainvoke instead of astream_events to avoid
+            # NotImplementedError from sync SupabaseCheckpointer
+            yield f"event: thinking\ndata: {json.dumps({'node': 'supervisor', 'status': 'routing'})}\n\n"
             
-            # Final response
             final_state = await graph.ainvoke(initial_state, config)
-            response_text = final_state.get("final_response") or final_state.get("current_response") or ""
+            
+            # Extract response from final state
+            if isinstance(final_state, dict):
+                response_text = final_state.get("final_response") or final_state.get("current_response") or ""
+                
+                # Send any GenUI payloads
+                for genui_item in final_state.get("genui_payloads", []):
+                    yield f"event: genui\ndata: {json.dumps(genui_item.model_dump() if hasattr(genui_item, 'model_dump') else genui_item)}\n\n"
+            else:
+                response_text = str(final_state) if final_state else ""
+            
+            if not response_text:
+                response_text = "El agente procesó la solicitud pero no generó una respuesta de texto."
             
             yield f"event: response\ndata: {json.dumps({'response': response_text})}\n\n"
             yield f"event: end\ndata: {json.dumps({'status': 'complete'})}\n\n"
